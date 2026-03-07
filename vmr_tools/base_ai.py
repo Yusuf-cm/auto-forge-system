@@ -23,11 +23,17 @@ class BaseAI:
       6. OpenRouter openrouter/auto                        — meta-router, picks best available free model
       7. OpenRouter deepseek/deepseek-chat-v3-0324:free   — confirmed free, DeepSeek V3
       8. OpenRouter deepseek/deepseek-r1:free             — confirmed free, DeepSeek R1
+      9. GitHub Models gpt-4o                              — free via GITHUB_TOKEN, auto-injected in Actions
+     10. GitHub Models Meta-Llama-3-70B-Instruct          — free Llama via GitHub Models
+     11. GitHub Models DeepSeek-R1                        — free DeepSeek via GitHub Models
 
     NOTE: llama-3.1-8b-instant removed — too small for AutoForge prompts (413 errors).
     NOTE: gemini-1.5-flash / gemini-1.5-pro removed — deprecated, return 404.
     NOTE: OpenRouter requires OPENROUTER_API_KEY in .env — free tier, no billing needed.
           Sign up at https://openrouter.ai and generate a free key.
+    NOTE: GitHub Models uses GITHUB_TOKEN — no extra key needed. In GitHub Actions
+          this token is injected automatically. Locally, generate a PAT with models:read
+          scope at github.com/settings/tokens and add GITHUB_TOKEN to .env.
     """
 
     def __init__(self):
@@ -63,6 +69,22 @@ class BaseAI:
             except ImportError:
                 print("  [BaseAI] OpenRouter: INACTIVE (run: pip install openai)")
 
+        # ── GitHub Models setup (free via GITHUB_TOKEN) ───────────────────
+        # In GitHub Actions: GITHUB_TOKEN is auto-injected — no secret needed.
+        # Locally: generate a PAT with models:read scope at github.com/settings/tokens
+        # and add GITHUB_TOKEN=ghp_... to your .env file.
+        self.github_models_client = None
+        github_token = os.getenv("GITHUB_TOKEN")
+        if github_token:
+            try:
+                from openai import OpenAI
+                self.github_models_client = OpenAI(
+                    api_key=github_token,
+                    base_url="https://models.inference.ai.azure.com",
+                )
+            except ImportError:
+                print("  [BaseAI] GitHub Models: INACTIVE (run: pip install openai)")
+
         # Groq models in priority order
         self.GROQ_MODELS = [
             "llama-3.3-70b-versatile",
@@ -83,6 +105,14 @@ class BaseAI:
             "openrouter/auto",
             "deepseek/deepseek-chat-v3-0324:free",
             "deepseek/deepseek-r1:free",
+        ]
+
+        # GitHub Models — free via GITHUB_TOKEN, no billing required.
+        # Auto-injected in GitHub Actions. Strong final fallback.
+        self.GITHUB_MODELS = [
+            "gpt-4o",
+            "Meta-Llama-3-70B-Instruct",
+            "DeepSeek-R1",
         ]
 
     def _call_llm(self, prompt, temperature=0.2, max_tokens=8000):
@@ -151,6 +181,23 @@ class BaseAI:
                     return response.choices[0].message.content
                 except Exception as e:
                     print(f"  [BaseAI] OpenRouter '{model_name}' failed: {str(e)[:120]}. Trying next...")
+                    continue
+
+        # ── OpenRouter exhausted — try GitHub Models ──────────────────────
+        if self.github_models_client:
+            print("  [BaseAI] All OpenRouter models exhausted. Falling back to GitHub Models...")
+            for model_name in self.GITHUB_MODELS:
+                try:
+                    response = self.github_models_client.chat.completions.create(
+                        model=model_name,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    print(f"  [BaseAI] GitHub Models '{model_name}' responded successfully.")
+                    return response.choices[0].message.content
+                except Exception as e:
+                    print(f"  [BaseAI] GitHub Models '{model_name}' failed: {str(e)[:120]}. Trying next...")
                     continue
 
         print("  [BaseAI] FATAL: All providers and models exhausted. No response.")

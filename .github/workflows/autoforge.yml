@@ -1,0 +1,114 @@
+name: AutoForge Pipeline
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Triggered manually from the GitHub Actions UI.
+# Go to: Actions → AutoForge Pipeline → Run workflow
+#
+# Inputs:
+#   command       — weave (generate new site) or evolve (improve existing site)
+#   project_name  — e.g. apex, coffee_shop, nova_saas
+#   template      — bootstrap template to use for weave (default: bootstrap_nextjs)
+#
+# Secrets required (Settings → Secrets and variables → Actions):
+#   GROQ_API_KEY        — from console.groq.com
+#   GEMINI_API_KEY      — from aistudio.google.com
+#   OPENROUTER_API_KEY  — from openrouter.ai (free tier)
+#
+# GITHUB_TOKEN is injected automatically — no secret needed for GitHub Models.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Command to run'
+        required: true
+        type: choice
+        options:
+          - weave
+          - evolve
+      project_name:
+        description: 'Project name (e.g. apex)'
+        required: true
+        type: string
+      template:
+        description: 'Bootstrap template for weave (leave blank for evolve)'
+        required: false
+        type: string
+        default: 'bootstrap_nextjs'
+
+jobs:
+  autoforge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Required for GITHUB_TOKEN to call GitHub Models API
+    permissions:
+      contents: write
+      models: read
+
+    steps:
+      # ── 1. Checkout full history so evolve can read previous versions ────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2. Python setup ──────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ── 3. Node.js setup (for npm install / build / test) ────────────────
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # ── 4. Python dependencies ───────────────────────────────────────────
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # ── 5. Run AutoForge ─────────────────────────────────────────────────
+      - name: Run AutoForge — ${{ github.event.inputs.command }} ${{ github.event.inputs.project_name }}
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.command }}" = "weave" ]; then
+            python main.py weave ${{ github.event.inputs.project_name }} --using_template ${{ github.event.inputs.template }}
+          else
+            python main.py evolve ${{ github.event.inputs.project_name }}
+          fi
+
+      # ── 6. Commit generated project files back to repo ───────────────────
+      # This is what makes evolve work on the next run — previous versions
+      # are stored in the repo so the next run can read them.
+      - name: Commit AutoForge output to repository
+        if: success()
+        run: |
+          git config user.name  "AutoForge Bot"
+          git config user.email "autoforge@worldsmith.dev"
+          git add projects/
+          git diff --staged --quiet || git commit -m "AutoForge: ${{ github.event.inputs.command }} ${{ github.event.inputs.project_name }} [run #${{ github.run_number }}]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 7. Upload logs and reports as downloadable artifacts ─────────────
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoforge-${{ github.event.inputs.command }}-${{ github.event.inputs.project_name }}-run${{ github.run_number }}
+          path: |
+            projects/${{ github.event.inputs.project_name }}/logs/
+            projects/${{ github.event.inputs.project_name }}/project_history.md
+            projects/${{ github.event.inputs.project_name }}/last_critique.json
+          retention-days: 90
+          if-no-files-found: warn
