@@ -1,0 +1,11 @@
+A premium specialty coffee roaster called "Volt Coffee". 
+
+The site must allow visitors to:
+- Browse 3 coffee products with descriptions and prices
+- Add products to a shopping cart with quantity controls
+- View and manage their cart in a slide-out drawer
+- Submit a contact form that validates input and calls an API route
+- Navigate between sections via a fixed nav with smooth scroll
+
+Built with Next.js App Router, TypeScript, and React hooks.
+All state managed with useReducer. Cart persists via localStorage.

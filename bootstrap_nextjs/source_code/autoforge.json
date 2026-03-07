@@ -1,0 +1,13 @@
+{
+  "project_name": "autoforge-bootstrap",
+  "version": "1.0.0",
+  "framework": "nextjs",
+  "language": "typescript",
+  "install_command": "npm install",
+  "build_command": "npm run build",
+  "test_command": "npm test",
+  "start_command": "npm start",
+  "deploy_command": "npx vercel --prod --yes",
+  "entry_point": "app/page.tsx",
+  "timeout_seconds": 300
+}

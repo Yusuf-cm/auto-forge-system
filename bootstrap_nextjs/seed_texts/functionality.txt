@@ -1,0 +1,70 @@
+# CAPABILITY SPECIFICATION
+# This file defines what the site must DO, not just what it looks like.
+# The Weaver MUST implement every capability listed here.
+# The Functional Critic will verify each one after generation.
+
+cart:
+  storage: localStorage
+  persistence: survives page refresh via useEffect + loadCartFromStorage()
+  operations:
+    - add (increments quantity if product already in cart)
+    - remove (removes item entirely)
+    - update_quantity (sets quantity, removes if quantity reaches 0)
+    - clear (empties cart)
+    - toggle (opens/closes cart drawer)
+  state_management: useReducer with CartAction union type
+  display: slide-out drawer component with backdrop
+  counter: item count badge visible in Nav at all times
+
+contact_form:
+  fields:
+    - name (text, required, min 2 chars)
+    - email (email, required, valid format)
+    - message (textarea, required, min 20 chars)
+  validation: client-side before any API call
+  submission: POST /api/contact with JSON body
+  states:
+    - idle (default)
+    - loading (submit button disabled, shows "Sending...")
+    - success (form replaced with confirmation message)
+    - error (inline error message shown, form remains)
+  api_route: app/api/contact/route.ts validates server-side and returns JSON
+
+navigation:
+  type: fixed position, full width
+  scroll_behavior:
+    - background becomes opaque after 20px scroll (transparent at top)
+    - active section highlighted via scroll event listener
+  mobile_menu:
+    - hidden on desktop (>768px)
+    - hamburger button visible on mobile
+    - toggle via useState(isMenuOpen)
+    - animated hamburger → X transition
+  cart_button: visible in nav, shows item count badge when cart has items
+  smooth_scroll: all anchor links use scrollIntoView({ behavior: 'smooth' })
+
+products:
+  data_source: lib/products.ts exports PRODUCTS array with TypeScript interface
+  display: ProductCard component receives product + onAddToCart as props
+  add_to_cart_feedback: button shows "Added ✓" for 1500ms after click
+  hover_state: border brightens, box-shadow increases on hover
+  out_of_stock: button disabled and shows "Sold Out" when inStock is false
+
+user_flows:
+  - browse_products → add_to_cart → view_cart → update_quantity → checkout_placeholder
+  - fill_contact_form → validate → submit → see_confirmation
+  - click_nav_link → smooth_scroll_to_section
+  - open_mobile_menu → click_link → menu_closes → section_scrolls
+
+required_file_structure:
+  types/index.ts          — all TypeScript interfaces (Product, CartItem, CartState, CartAction, ContactFormData, ContactFormState, NavItem)
+  lib/cart.ts             — cartReducer, initialCartState, getCartCount, getCartTotal, saveCartToStorage, loadCartFromStorage
+  lib/products.ts         — PRODUCTS array, getProductById, formatPrice
+  components/Nav.tsx      — fixed nav with scroll-spy, mobile toggle, cart button
+  components/Cart.tsx     — slide-out drawer with item list, quantity controls, totals
+  components/ProductCard.tsx — product card with add-to-cart and hover state
+  components/ContactForm.tsx — controlled form with validation and API submission
+  app/api/contact/route.ts — POST handler with validation and JSON response
+  app/page.tsx            — orchestrator: useReducer for cart, all handlers defined here, components receive props
+  app/globals.css         — CSS variables in :root, no height:100vh on body, responsive grid
+  app/layout.tsx          — metadata only, imports globals.css

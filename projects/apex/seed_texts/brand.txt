@@ -1,0 +1,21 @@
+Minimal, clinical, premium brand. Serious about results. Zero fluff.
+
+Colors (CSS variables in :root):
+  --bg: #F5F5F0 (off-white — page background, clean and light)
+  --surface: #FFFFFF (pure white — cards, panels)
+  --accent: #0A0A0A (near-black — primary CTA, headings)
+  --accent-warm: #C8A96E (gold — premium highlight, prices, badges)
+  --text: #0A0A0A (near-black — all body text)
+  --text-muted: #6B6B6B (grey — secondary text, descriptions)
+  --border: rgba(10, 10, 10, 0.1) (subtle border)
+
+Typography:
+  Headings: 'Playfair Display', serif (imported via Google Fonts)
+  Body: 'DM Sans', sans-serif (imported via Google Fonts)
+
+Style:
+  Generous whitespace — this brand breathes, it does not crowd
+  Thin borders (1px) rather than heavy dividers
+  Gold accent used only for pricing, badges, and key highlights
+  Rounded corners: 2px on buttons and cards (barely there, refined)
+  No shadows — flat, clean surfaces only

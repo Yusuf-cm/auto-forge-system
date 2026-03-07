@@ -1,0 +1,17 @@
+High-energy, industrial, modern brand.
+
+Colors (CSS variables in :root):
+  --bg: #1A1A1A (charcoal — page background)
+  --surface: #242424 (slightly lighter — cards, surfaces)
+  --accent: #CCFF00 (neon yellow — buttons, highlights, prices)
+  --text: #FFFFFF (white — headings, body)
+  --text-muted: #888888 (grey — secondary text, descriptions)
+
+Typography:
+  Headings: 'Bebas Neue', sans-serif (imported via Google Fonts)
+  Body: 'Inter', sans-serif (imported via Google Fonts)
+
+Style:
+  Zero border-radius on buttons and cards (sharp industrial edges)
+  Neon yellow accent used sparingly for maximum impact
+  Subtle glow effects: box-shadow rgba(204, 255, 0, 0.05-0.1)

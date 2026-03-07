@@ -1,0 +1,32 @@
+# CAPABILITY SPECIFICATION
+
+booking_form:
+  fields:
+    - name (text, required, min 2 chars)
+    - email (email, required, valid format)
+    - phone (tel, required, min 10 digits)
+    - program (select dropdown, required)
+      options:
+        - "Executive Performance (12 weeks)"
+        - "Body Recomposition (16 weeks)"
+        - "Athletic Foundation (8 weeks)"
+  validation: client-side before submit
+  submission: POST /api/booking
+  success_state: confirmation message replaces form
+  error_state: inline field errors
+
+navigation:
+  mobile_menu: toggle (useState)
+  scroll_links: smooth scroll to section id
+  active_state: highlight current section on scroll
+
+programs:
+  display: 3 program cards
+  data_source: lib/programs.ts (TypeScript interface)
+  fields: name, tagline, duration, price, features list, cta
+
+user_flows:
+  - view_programs
+  - read_trainer_profile
+  - submit_booking_inquiry
+  - navigate_sections

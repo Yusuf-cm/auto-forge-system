@@ -1,0 +1,15 @@
+A premium personal training and performance coaching studio called "Apex".
+
+The site must allow visitors to:
+- Browse 3 coaching programs with descriptions, duration, and pricing
+- Submit a booking inquiry form that validates input and calls an API route
+- View a trainer profile section with credentials and philosophy
+- Navigate between sections via a fixed nav with smooth scroll and active state
+- Toggle a mobile navigation menu on small screens
+
+The booking form must collect: name, email, phone number, and which program
+they are interested in (dropdown selection). It validates all fields client-side
+before submitting to /api/booking. On success it shows a confirmation message.
+
+Built with Next.js App Router, TypeScript, and React hooks.
+All form state managed with useState. No cart required — this is a service business.
