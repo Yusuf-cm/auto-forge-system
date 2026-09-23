@@ -41,9 +41,9 @@ class BaseAI:
 
         # ── Groq setup ────────────────────────────────────────────────────
         groq_key = os.getenv("GROQ_API_KEY")
-        if not groq_key:
-            raise ValueError("FATAL: GROQ_API_KEY not found in .env file.")
-        self.groq_client = Groq(api_key=groq_key)
+        self.groq_client = Groq(api_key=groq_key) if groq_key else None
+        if not self.groq_client:
+            print("  [BaseAI] Groq: INACTIVE (GROQ_API_KEY not configured).")
 
         # ── Gemini setup (optional but strongly recommended) ──────────────
         self.gemini_client = None
@@ -127,25 +127,26 @@ class BaseAI:
 
         Returns the response string or None if everything fails.
         """
-        # ── Try Groq first ────────────────────────────────────────────────
-        for model in self.GROQ_MODELS:
-            try:
-                response = self.groq_client.chat.completions.create(
-                    messages=[{"role": "user", "content": prompt}],
-                    model=model,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                err = str(e)[:120]
-                if "decommissioned" in err.lower():
+        # ── Try Groq first when configured ───────────────────────────────
+        if self.groq_client:
+            for model in self.GROQ_MODELS:
+                try:
+                    response = self.groq_client.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model=model,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    return response.choices[0].message.content
+                except Exception as e:
+                    err = str(e)[:120]
+                    if "decommissioned" in err.lower():
+                        continue
+                    if "429" in err or "rate limit" in err.lower():
+                        print(f"  [BaseAI] Groq '{model}' rate limited. Trying next...")
+                        continue
+                    print(f"  [BaseAI] Groq '{model}' failed: {err}. Trying next...")
                     continue
-                if "429" in err or "rate limit" in err.lower():
-                    print(f"  [BaseAI] Groq '{model}' rate limited. Trying next...")
-                    continue
-                print(f"  [BaseAI] Groq '{model}' failed: {err}. Trying next...")
-                continue
 
         # ── Groq exhausted — try Gemini ───────────────────────────────────
         if self.gemini_client:
