@@ -4,10 +4,6 @@
 // while providing a minimal functional check.
 
 describe('AutoForge Bootstrap', () => {
-  test('environment is configured correctly', () => {
-    expect(true).toBe(true)
-  })
-
   test('product data is defined', () => {
     // Import check — confirms lib/products.ts exports correctly
     const { PRODUCTS } = require('../lib/products')

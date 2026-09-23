@@ -67,9 +67,8 @@ class AutoForgeVMR:
 
     def _command_weave(self, args):
         """
-        Generates a complete working website from seed texts.
-        Guarantees v1 is stable — runs autonomous fix loop until pipeline passes.
-        Never produces a broken v1.
+        Generates a website candidate from seed texts and runs an autonomous
+        repair loop. v1 is promoted only after verification succeeds.
         """
         if len(args) < 3 or "--using_template" not in args:
             print("Usage: python main.py weave [name] --using_template [template]")
@@ -200,9 +199,10 @@ class AutoForgeVMR:
 
         # ── Stage 4: Promote staging → v1 ────────────────────────────────
         if not success:
-            print(f"\n[AutoForge] WARNING: v1 is being promoted with a FAILING pipeline or pending violations.")
-            print(f"  Run 'python main.py evolve {project_name}' to continue the fix loop.")
-            
+            print(f"\n[AutoForge] v1 was NOT promoted because verification did not pass.")
+            print("  The generated candidate remains in versions/staging for inspection.")
+            return
+
         v1_dir = os.path.join(project_path, "versions", "v1")
         if os.path.exists(v1_dir):
             shutil.rmtree(v1_dir)
@@ -544,18 +544,21 @@ class AutoForgeVMR:
     # ══════════════════════════════════════════════════════════════════════
 
     def _get_latest_version(self, project_path):
-        """Returns the highest vN version string, or None if no versions exist."""
+        """Returns the highest verified vN version, or None if none pass."""
         versions_path = os.path.join(project_path, "versions")
         if not os.path.exists(versions_path):
             return None
-        versions =[
+        versions = [
             d for d in os.listdir(versions_path)
             if d.startswith("v") and d[1:].isdigit()
         ]
-        if not versions:
-            return None
-        versions.sort(key=lambda x: int(x[1:]))
-        return versions[-1]
+        versions.sort(key=lambda x: int(x[1:]), reverse=True)
+        build_log_dir = self._get_build_log_dir(project_path)
+        for version in versions:
+            log_path = self._get_latest_log_for_version(build_log_dir, version)
+            if log_path and self._pipeline_passed(log_path):
+                return version
+        return None
 
     def _branch_version(self, project_path, source_v, target_v):
         """
